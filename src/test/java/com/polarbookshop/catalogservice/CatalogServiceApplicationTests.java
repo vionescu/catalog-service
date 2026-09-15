@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
+import org.springframework.test.context.support.TestPropertySourceUtils;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 import java.util.Objects;
@@ -18,6 +20,29 @@ class CatalogServiceApplicationTests {
 
     @Autowired
     private WebTestClient webTestClient;
+
+    @Autowired
+    private ConfigurableApplicationContext applicationContext;
+
+    @Test
+    void whenRefreshEndpointCalledThenConfigurationPropertiesAreRefreshed() {
+        TestPropertySourceUtils.addInlinedPropertiesToEnvironment(
+                applicationContext, "polar.greeting=Welcome to the refreshed book catalog!");
+
+        webTestClient
+                .post()
+                .uri("/actuator/refresh")
+                .exchange()
+                .expectStatus().is2xxSuccessful();
+
+        webTestClient
+                .get()
+                .uri("/")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(String.class)
+                .isEqualTo("Welcome to the refreshed book catalog!");
+    }
 
     @Test
     void whenGetRequestWithIdThenBookReturned() {
